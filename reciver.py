@@ -16,7 +16,7 @@ def decrypt_message(message):
 
 
 def analyzing_message(sock):
-    data = client_socket.recv(8192)
+    data = sock.recv(8192)
     content = decrypt_message(data).decode()
     t = time.localtime()
     current_time = str(t[3]) + ":" + str(t[4]) + ":" + str(t[5])

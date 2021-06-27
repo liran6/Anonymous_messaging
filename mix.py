@@ -10,11 +10,12 @@ import random
 import socket
 import sys
 
-def send_message(message, ip, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, port))
-    s.send(message)
-    s.close()
+
+# def send_message(message, ip, port):
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     s.connect((ip, port))
+#     s.send(message)
+#     s.close()
 
 
 def decryptor(cipher_text, private_key):
@@ -28,8 +29,7 @@ def decryptor(cipher_text, private_key):
     )
 
 
-def encryp_check(message,private_key):
-
+def encryp_check(message, private_key):
     message = decryptor(message, private_key)
     # print(message)
     port = []
@@ -45,14 +45,48 @@ def encryp_check(message,private_key):
         port.append(msg.pop(0))
     port = int.from_bytes(port, byteorder='big', signed=False)
 
-    msg = bytes(msg) # this is the "real" message
+    msg = bytes(msg)  # this is the "real" message
     print(msg)
     print(ip)
     print(port)
     print("------------------------------------------------------------------------\n")
     message = msg
-    return ip, port,message
+    return ip, port, message
 
+def send_message(message, ip, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, port))
+    s.send(message)
+    s.close()
+
+
+#     get the decrypted message with the address & port and forward it to send.
+def analyze_data():
+    #     create the next circle of analyzing
+    t = threading.Timer(10.0, analyze_data)
+    t.start()
+    size = len(messages)
+    mutex.acquire()
+    while len(messages) > 0:
+        i = random.choice(range(len(messages)))
+        m = messages.pop(i)
+        a = addresses.pop(i)
+        p = ports.pop(i)
+        send_message(m, a, p)
+    mutex.release()
+
+
+def decrypt_data(sock):
+    data = sock.recv(8192)
+    dest_ip, dest_port, message_to_forward = encryp_check(data, private_key)
+
+    mutex.acquire()
+    messages.append(message_to_forward)
+    addresses.append(dest_ip)
+    ports.append(dest_port)
+    mutex.release()
+
+    # send_message(message_to_forward, dest_ip, dest_port)
 
 
 # checking the arguments.
@@ -63,17 +97,17 @@ if len(sys.argv) < 2:
 # get private key for the server
 x = sys.argv[1]
 file_name = "sk" + x + ".pem"
-sk = open(file_name,'r')
+sk = open(file_name, 'r')
 key = sk.read()
 private_key = serialization.load_pem_private_key(key.encode(), password=None)
 sk.close()
 
 # get the ip+port for the server
-ips = open("ips.txt",'r')
+ips = open("ips.txt", 'r')
 data = ips.readlines()
-ipNport = data[int(x)-1].split(" ")
+ipNport = data[int(x) - 1].split(" ")
 ips.close()
-print ("ip & port: " + ipNport[0]+" : "+ ipNport[1]+"\n")
+print("ip & port: " + ipNport[0] + " : " + ipNport[1] + "\n")
 print("private key:")
 print(private_key)
 print("---------------------------------------------------\n")
@@ -82,22 +116,31 @@ print("---------------------------------------------------\n")
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("", int(ipNport[1])))
 s.listen()
-# messages_for_next_round = []
+mutex = threading.Lock()
+messages = []
+addresses = []
+ports = []
+t = threading.Timer(10.0, analyze_data)
+t.start()
+
 
 while True:
     client_socket, client_address = s.accept()
+    thread = threading.Thread(target=decrypt_data, args=(client_socket,))
+    thread.start()
+    # data = client_socket.recv(8192)
+    # dest_ip, dest_port, message_to_forward = encryp_check (data, private_key)
+    # print("--------------------------------------\n")
+    # print("dest ip:\n")
+    # print(dest_ip)
+    # print("dest port:\n")
+    # print(dest_port)
+    # print("message to send:\n")
+    # print(message_to_forward)
+    # print("--------------------------------------\n")
+    # send_message(message_to_forward,dest_ip,dest_port)
+    #
 
-    data = client_socket.recv(8192)
-    dest_ip, dest_port, message_to_forward = encryp_check (data, private_key)
-    print("--------------------------------------\n")
-    print("dest ip:\n")
-    print(dest_ip)
-    print("dest port:\n")
-    print(dest_port)
-    print("message to send:\n")
-    print(message_to_forward)
-    print("--------------------------------------\n")
-    send_message(message_to_forward,dest_ip,dest_port)
     # message_include_ip_port = private_key_object.decrypt(
     #     data,
     #     padding.OAEP(
