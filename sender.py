@@ -10,32 +10,6 @@ from cryptography.hazmat.primitives import serialization
 import socket
 
 
-# checking the arguments.
-if len(sys.argv) < 2:
-    print("Wrong amount of arguments. should be one number")
-    exit(-1)
-# creating the message file name to input for the reading.
-x = sys.argv[1]
-message_file = "messages" + x + ".txt"
-
-# open the messages file and divide it b lines.
-f = open(message_file, "r")
-messages = []
-for l in f:
-    messages.append(l)
-# print(messages)
-
-ips = open("ips.txt")
-addresses = {}
-ports = {}
-i = 1
-for l in ips:
-    routes = l.split()
-    addresses[i]= bytes(map(int, routes[0].split('.')))
-    ports[i]= int(routes[1]).to_bytes(2,'big')
-    i+=1
-# print(addresses)
-# print(ports)
 
 def encrypt_with_public_key(message, public_key):
     return public_key.encrypt(
@@ -49,13 +23,13 @@ def encrypt_with_public_key(message, public_key):
 
 def public_encryption(enc_sequence,message,addresses, ports):
 
-    int_sequence = list(map(int, enc_sequence))
+    # int_sequence = list(map(int, enc_sequence))
     # sequence = enc_sequence.reverse()
-    int_sequence.reverse()
+    enc_sequence.reverse()
     pks = []
     path = 0
     flag = True
-    for x in int_sequence:
+    for x in enc_sequence:
         pk = "".encode()
         enc_file = "pk"+str(x)+".pem"
         f = open(enc_file,'br')
@@ -124,6 +98,36 @@ def send_message(message, ip, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     s.send(message)
+    s.close()
+
+# checking the arguments.
+if len(sys.argv) < 2:
+    print("Wrong amount of arguments. should be one number")
+    exit(-1)
+# creating the message file name to input for the reading.
+x = sys.argv[1]
+message_file = "messages" + x + ".txt"
+
+# open the messages file and divide it b lines.
+f = open(message_file, "r")
+messages = []
+for l in f:
+    messages.append(l)
+# print(messages)
+
+ips = open("ips.txt")
+addresses = {}
+str_addresses = {}
+ports = {}
+i = 1
+for l in ips:
+    routes = l.split()
+    str_addresses[i] = routes[0]
+    addresses[i]= bytes(map(int, routes[0].split('.')))
+    ports[i]= int(routes[1]).to_bytes(2,'big')
+    i+=1
+# print(addresses)
+# print(ports)
 
 for line in messages:
     content = line.split()
@@ -134,7 +138,10 @@ for line in messages:
     salt = bytes(content[4].encode())
     dest_ip = bytes(map(int,content[5].split('.')))
     dest_port = int(content[6]).to_bytes(2,'big')
-
+    int_server_path = list(map(int, server_path))
+    server_num = int_server_path[0]
+    server_ip= str_addresses[server_num]
+    server_port= int.from_bytes(ports[server_num],'big')
 
     kdf = PBKDF2HMAC(
         algorithm = hashes.SHA256(),
@@ -148,10 +155,10 @@ for line in messages:
     token = f.encrypt(message)
     routing_massage = dest_ip+dest_port+token
     # print(routing_massage)
-    message_to_send = public_encryption(server_path, routing_massage, addresses, ports)
+    message_to_send = public_encryption(int_server_path, routing_massage, addresses, ports)
     print("------------------------------------------------------------------------\n")
-    send_message(message_to_send, dest_ip, dest_port)
+    send_message(message_to_send, server_ip, server_port)
     # encryp_check(message_to_send)
-    # print(token)
+    print(token)
     # print(routing_massage)
     # print('hi')
