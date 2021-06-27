@@ -80,14 +80,14 @@ print("---------------------------------------------------\n")
 
 # open socket and wait for inputs from the clients.
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('', int(ipNport[1])))
+s.bind(("", int(ipNport[1])))
 s.listen()
 # messages_for_next_round = []
 
 while True:
     client_socket, client_address = s.accept()
 
-    data = client_socket.recv(4096)
+    data = client_socket.recv(8192)
     dest_ip, dest_port, message_to_forward = encryp_check (data, private_key)
     print("--------------------------------------\n")
     print("dest ip:\n")
