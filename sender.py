@@ -1,5 +1,7 @@
 import sys
 import base64
+import time
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
@@ -131,12 +133,12 @@ for l in ips:
     i += 1
 # print(addresses)
 # print(ports)
-
+messages_to_send = []
 for line in messages:
     content = line.split()
     message = bytes(content[0].encode())
     server_path = content[1].split(",")
-    round = content[2]
+    round = int(content[2])
     password = bytes(content[3].encode())
     salt = bytes(content[4].encode())
     dest_ip = bytes(map(int, content[5].split('.')))
@@ -158,11 +160,34 @@ for line in messages:
     token = f.encrypt(message)
     routing_massage = dest_ip + dest_port + token
     # print(routing_massage)
-    message_to_send = public_encryption(int_server_path, routing_massage, addresses, ports)
+    complete_message = public_encryption(int_server_path, routing_massage, addresses, ports)
     print("------------------------------------------------------------------------\n")
-    t = threading.Thread(target=send_message, args=(message_to_send, server_ip, server_port, round))
-    send_message(message_to_send, server_ip, server_port)
-    # encryp_check(message_to_send)
-    print(token)
-    # print(routing_massage)
-    # print('hi')
+    # t = threading.Thread(target=send_message, args=(complete_message, server_ip, server_port, round))
+    messages_to_send.append([round, complete_message, server_ip, server_port])
+
+    # send_message(complete_message, server_ip, server_port)
+messages_to_send.sort(key=lambda x: x[0])
+
+t = time.localtime()
+current_time = str(t[3]) + ":" + str(t[4]) + ":" + str(t[5])
+print(current_time)
+
+start_time = time.time()
+rounid = time.time() - start_time
+av = []
+while len(messages_to_send) != 0:
+    timing = (time.time() - start_time) / 10
+    if messages_to_send[0][0] <= timing:
+        data = messages_to_send.pop(0)
+        send_message(data[1], data[2], data[3])
+
+    else:
+        xb = 7
+    # for i in messages_to_send:
+
+print("--- %s seconds ---" % (time.time() - start_time))
+print("done")
+# encryp_check(complete_message)
+# print(token)
+# print(routing_massage)
+# print('hi')

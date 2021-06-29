@@ -63,7 +63,7 @@ def send_message(message, ip, port):
 #     get the decrypted message with the address & port and forward it to send.
 def analyze_data():
     #     create the next circle of analyzing
-    t = threading.Timer(10.0, analyze_data)
+    t = threading.Timer(60.0, analyze_data)
     t.start()
     size = len(messages)
     mutex.acquire()
@@ -120,7 +120,7 @@ mutex = threading.Lock()
 messages = []
 addresses = []
 ports = []
-t = threading.Timer(10.0, analyze_data)
+t = threading.Timer(60.0, analyze_data)
 t.start()
 
 

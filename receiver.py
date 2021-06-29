@@ -10,17 +10,19 @@ from cryptography.hazmat.primitives import hashes
 
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-
+num = 1
 def decrypt_message(message):
     return Fernet(decryption_key).decrypt(message)
 
 
 def analyzing_message(sock):
+    global num
     data = sock.recv(8192)
     content = decrypt_message(data).decode()
     t = time.localtime()
     current_time = str(t[3]) + ":" + str(t[4]) + ":" + str(t[5])
-    print(content + " " + current_time)
+    print("("+ str(num) +") : "+content + " " + current_time)
+    num +=1
 
 
 if len(sys.argv) < 3:
@@ -30,6 +32,7 @@ if len(sys.argv) < 3:
 # create the decryption key
 password = bytes(sys.argv[1].encode())
 salt = bytes(sys.argv[2].encode())
+port = int(sys.argv[3])
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA256(),
     length=32,
@@ -38,8 +41,8 @@ kdf = PBKDF2HMAC(
 )
 decryption_key = base64.urlsafe_b64encode(kdf.derive(password))
 
-print("please enter listening port: ")
-port = int(input())
+# print("please enter listening port: ")
+# port = int(input())
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("", port))
 s.listen()
@@ -54,7 +57,7 @@ while True:
     # t= time.localtime()
     # current_time = str(t[3])+":"+str(t[4])+":"+str(t[5])
     # print(content+ " " +current_time)
-    print("yupi")
+    # print("yupi")
 #
 
 # t = f.decrypt(data)
